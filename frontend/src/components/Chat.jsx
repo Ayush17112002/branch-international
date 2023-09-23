@@ -1,0 +1,33 @@
+import socket from "../socket";
+import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import axios from "axios";
+import CustomerChatPage from "./CustomerChatPage";
+import AgentChatPage from "./AgentChatPage";
+const host = import.meta.env.VITE_BACKEND_URI;
+export default function Chat() {
+  const user = useSelector((state) => state.user);
+  useEffect(() => {
+    if (user.loggedIn) {
+      //make connection
+      socket.connect();
+      //emit user-id event and send userid
+      socket.emit("user-id", user.id);
+    }
+    return () => {
+      socket.disconnect();
+    };
+  }, [user.loggedIn]);
+  return (
+    <div
+      className="chat-page w-screen h-screen"
+      style={{
+        backgroundImage: `url(https://d2c5ectx2y1vm9.cloudfront.net/assets/index/plants-2120f3eafc92bfda7a3c0562f0b5ea5f59e2791c332573a61e3038d8ae267d43.png)`,
+        backgroundSize: "contain",
+      }}
+    >
+      {user.type === "AGENT" && <AgentChatPage />}
+      {user.type === "CUSTOMER" && <CustomerChatPage />}
+    </div>
+  );
+}

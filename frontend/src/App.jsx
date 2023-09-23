@@ -3,14 +3,15 @@ import "./App.css";
 import { ToastContainer } from "react-toastify";
 import Login from "./components/Login";
 import "react-toastify/dist/ReactToastify.css";
-
-// import { io } from "socket.io-client";
-// const socket = io(import.meta.env.VITE_BACKEND_URI, { autoConnect: false });
+import { useSelector, useDispatch } from "react-redux";
+import Chat from "./components/Chat";
 
 const App = () => {
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user);
   return (
     <div className="app">
-      <Login />
+      {!user.loggedIn ? <Login /> : <Chat />}
       <ToastContainer />
     </div>
   );
