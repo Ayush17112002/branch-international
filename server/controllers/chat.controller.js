@@ -7,7 +7,7 @@ const getMessages = async (req, res) => {
       .populate("from")
       .populate("to")
       .sort({ createdAt: 1 });
-    console.log(messages);
+    //console.log(messages);
     return res.status(200).json({
       data: messages,
     });
@@ -19,9 +19,9 @@ const getMessages = async (req, res) => {
 const getChats = async (req, res) => {
   try {
     const id = req.params.id;
-    console.log("getchat");
+    //console.log("getchat");
     const user = await User.findById(id).populate({ path: "connection" });
-    console.log(user.connection);
+    //console.log(user.connection);
     return res.status(200).json({ data: user.connection });
   } catch (err) {
     return res.status(400).json({ error: err });

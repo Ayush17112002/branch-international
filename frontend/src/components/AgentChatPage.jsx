@@ -1,12 +1,11 @@
-import socket from "../socket";
 import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { setMessages, addMessage } from "../redux/message";
+import { setMessages, addMessage, clearMessages } from "../redux/message";
 import { setChats, addChat, removeCustomer } from "../redux/chat";
 const host = import.meta.env.VITE_BACKEND_URI;
-export default function AgentChatPage() {
+export default function AgentChatPage({ socket }) {
   const dispatch = useDispatch();
   const messages = useSelector((state) => state.message.messages);
   console.log(messages);
@@ -44,7 +43,8 @@ export default function AgentChatPage() {
     const getMessages = async () => {
       try {
         if (!receiver) {
-          dispatch(setMessages([]));
+          console.log("fdfd");
+          dispatch(clearMessages());
           return;
         }
         const res = await axios({
@@ -79,19 +79,30 @@ export default function AgentChatPage() {
     };
     getChats();
   }, []);
+  function onReceiveMessage(message) {
+    console.log("rec listen", messages);
+    if (receiver === String(message.from._id)) {
+      console.log("rec listen", messages);
+      dispatch(addMessage(message));
+    }
+  }
   useEffect(() => {
     function onReceiveMessage(message) {
-      console.log("rec listen", messages);
-      if (receiver === String(message.from._id)) dispatch(addMessage(message));
+      console.log("rec listen", message, receiver);
+      if (receiver === String(message.from._id)) {
+        console.log("rec listen", messages);
+        dispatch(addMessage(message));
+      }
     }
     function onAddChat(message) {
       console.log(message, "add");
       dispatch(addChat(message));
     }
     function onClose(customerId) {
+      console.log(customerId, "onclode");
       if (String(customerId) === receiver) {
-        //console.log(customerId, receiver);
         setReceiver(null);
+        dispatch(clearMessages());
       }
       dispatch(removeCustomer(customerId));
     }
@@ -100,16 +111,15 @@ export default function AgentChatPage() {
     }
     socket.on("receive-message", onReceiveMessage);
     socket.on("add-chat", onAddChat);
-    socket.on("on-close", onClose);
+    socket.on("close-chat", onClose);
     socket.on("remove-customer", onRemoveCustomer);
     return () => {
       socket.off("receive-message", onReceiveMessage);
       socket.off("add-chat", onAddChat);
-      socket.off("on-close", onClose);
+      socket.off("close-chat", onClose);
       socket.off("remove-customer", onRemoveCustomer);
     };
-  }, []);
-
+  }, [receiver]);
   return (
     <div className="agent-chat-page absolute w-2/3 h-3/4 top-[12.5%] left-[12.5%] shadow-lg rounded-lg border-2 p-4 grid grid-cols-3 bg-slate-50">
       <div className="left-side relative flex flex-col justify-start border-2 overflow-auto rounded-lg">
@@ -118,12 +128,13 @@ export default function AgentChatPage() {
             console.log(chats);
             console.log(chat, "Fdf");
             return (
-              <div className="flex flex-row justify-start">
+              <div key={index} className="flex flex-row justify-start">
                 <div
                   key={index}
                   className="relative text-lg w-full mb-2 border-2 rounded-lg shadow-md"
                   onClick={(e) => {
                     e.preventDefault();
+                    console.log(String(chat._id), chat._id);
                     setReceiver(String(chat._id));
                   }}
                 >
@@ -134,6 +145,8 @@ export default function AgentChatPage() {
                     type="submit"
                     className="text-xs"
                     onClick={(e) => {
+                      dispatch(clearMessages());
+                      setReceiver(null);
                       socket.emit("close", chat._id);
                     }}
                   >
@@ -146,10 +159,13 @@ export default function AgentChatPage() {
       </div>
       {receiver && (
         <div className="right-side ml-2 relative col-span-2">
-          {chats.map((chat) => {
+          {chats.map((chat, index) => {
             if (chat._id === receiver) {
               return (
-                <div className="w-full flex flex-row justify-center font-medium">
+                <div
+                  key={index}
+                  className="w-full flex flex-row justify-center font-medium"
+                >
                   Conversation with {chat.userName}
                 </div>
               );
@@ -174,11 +190,12 @@ export default function AgentChatPage() {
               );
             })}
           </div>
-          <div className="input absolute w-full bottom-1 h-[8%] grid grid-cols-5">
+          <form className="input absolute w-full bottom-1 h-[8%] grid grid-cols-5">
             <input
               type="text"
               className="col-span-4 border-2 pl-2 pr-2 rounded-lg"
               placeholder="Enter message..."
+              value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
               }}
@@ -190,7 +207,7 @@ export default function AgentChatPage() {
             >
               Send
             </button>
-          </div>
+          </form>
         </div>
       )}
     </div>

@@ -2,25 +2,33 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const server = require("http").createServer(app);
+const socket = require("socket.io");
 app.use(cors());
 app.use(express.json());
 require("dotenv").config();
 require("./db/config");
+const User = require("./models/user.model");
+const Chat = require("./models/chat.model");
+app.use("/config", async (req, res) => {
+  try {
+    await User.updateMany({ $set: { connection: [] } });
+    return res.send("done");
+  } catch (err) {
+    //console.log(err);
+    return res.send("Fdf");
+  }
+});
 app.post("/login", require("./controllers/login.controller").login);
 app.get("/messages/:id", require("./controllers/chat.controller").getMessages);
 app.get("/chats/:id", require("./controllers/chat.controller").getChats);
 server.listen(process.env.SERVER_PORT, (err) => {
   if (err) {
-    console.log("Error in running the server");
+    //console.log("Error in running the server");
   } else {
-    console.log(`Server is running at port ${process.env.SERVER_PORT}`);
+    //console.log(`Server is running at port ${process.env.SERVER_PORT}`);
   }
 });
-// module.exports = server;
-const socket = require("socket.io");
-//const server = require("../index");
-const User = require("./models/user.model");
-const Chat = require("./models/chat.model");
+
 const io = socket(server, { cors: "*" });
 const customer = new Map();
 const agent = new Map();
@@ -42,7 +50,7 @@ io.on("connection", (socket) => {
           //do nothing
         } else {
           let min_connections = { count: -1, id: null };
-          console.log(min_connections);
+          ////console.log(min_connections);
           agents.forEach((item) => {
             if (agent.size > 0 && agent.has(item.id)) {
               if (min_connections.count == -1) {
@@ -67,20 +75,15 @@ io.on("connection", (socket) => {
             });
           }
           // await User.findByIdAndUpdate(myUser.id, { $set: { connection: [] } });
-          console.log(
-            "fdfd",
-            myUser,
-            min_connections,
-            typeof min_connections.id
-          );
+
           if (min_connections.id) {
             const Agent = await User.findByIdAndUpdate(min_connections.id, {
               $addToSet: { connection: userId },
             });
+            await Chat.updateMany({ from: userId }, { to: min_connections.id });
             const u = await User.findByIdAndUpdate(userId, {
               $set: { connection: [min_connections.id] },
             });
-            console.log(u);
             if (agent.has(min_connections.id))
               io.to(agent.get(min_connections.id)).emit("add-chat", u);
           }
@@ -89,26 +92,29 @@ io.on("connection", (socket) => {
         //only add into map
         agent.set(userId, socket.id);
         rev_agent.set(socket.id, userId);
-
+        console.log("fdsfs", agent, userId);
         const customers = await User.find({ type: "CUSTOMER" });
         const myAgent = await User.findById(userId);
-        console.log(customers, myAgent);
+        ////console.log(customers, myAgent);
+        let rem = 10 - myAgent.connection.length;
         await Promise.all(
           customers.map(async (c) => {
             try {
-              console.log(c);
-              if (c.connection.length === 0) {
+              ////console.log(c);
+              if (rem > 0 && c.connection.length === 0) {
+                rem--;
                 await User.findByIdAndUpdate(c.id, {
-                  $push: { connection: myAgent.id },
+                  $addToSet: { connection: myAgent.id },
                 });
                 await User.findByIdAndUpdate(myAgent.id, {
-                  $push: { connection: c.id },
+                  $addToSet: { connection: c.id },
                 });
-                console.log(socket.id);
+                await Chat.updateMany({ from: c.id }, { to: myAgent.id });
+                //console.log(socket.id);
                 io.to(socket.id).emit("add-chat", c);
               }
             } catch (err) {
-              console.log(err);
+              //console.log(err);
             }
           })
         );
@@ -116,7 +122,7 @@ io.on("connection", (socket) => {
         throw new Error("DB ERROR");
       }
     } catch (err) {
-      console.log(err);
+      //console.log(err);
     }
   });
   socket.on("disconnect", () => {
@@ -159,24 +165,23 @@ io.on("connection", (socket) => {
           .populate("from")
           .populate("to");
         callback(res);
-        console.log(res, fun);
         if (fun.to) {
           await User.findByIdAndUpdate(fun.to, {
             $addToSet: { connection: fun.from },
           });
         }
-        if (agent.has(fun.to)) {
-          console.log("hai");
-          io.to(agent.get(fun.to)).emit("receive-message", res);
-        }
+        console.log(agent.get(fun.to), fun.to);
+        if (fun.to) io.to(agent.get(fun.to)).emit("receive-message", res);
       }
     } catch (err) {
-      console.log(err);
+      //console.log(err);
     }
   });
   socket.on("close", async (customerId) => {
     try {
       const agentId = rev_agent.get(socket.id);
+      //ASSIGN NEW CUSTOMER TO AGENT
+      const customer = await User.findOne({ connection: [], to: null });
       const f = await User.findByIdAndUpdate(
         agentId,
         {
@@ -187,38 +192,19 @@ io.on("connection", (socket) => {
       await User.findByIdAndUpdate(customerId, {
         $set: { connection: [] },
       });
-      socket.emit("on-close", customerId);
-      if (customer.has(customerId)) {
-        //assign new agent to customer
-        const agents = await User.find({ type: "AGENT" });
-        let min_connections = { count: -1, id: "" };
-        agents.forEach((item) => {
-          if (agent.size > 0 && agent.has(item.id)) {
-            if (min_connections.count == -1)
-              min_connections = { count: item.connection.length, id: item.id };
-            else if (item.connection.length < min_connections.count)
-              min_connections = { count: item.connection.length, id: item.id };
-          }
-          if (agent.size === 0) {
-            if (min_connections.count == -1)
-              min_connections = { count: item.connection.length, id: item.id };
-            else if (item.connection.length < min_connections.count)
-              min_connections = { count: item.connection.length, id: item.id };
-          }
-        });
-        //assign new agent to customer
+      io.to(socket.id).emit("close-chat", customerId);
+      console.log(customer, "196");
+      if (customer) {
         await User.findByIdAndUpdate(customerId, {
-          $set: { connection: [min_connections.id] },
+          $set: { connection: [agentId] },
         });
-        //assign customer to the new agent
-        const Agent = await User.findByIdAndUpdate(min_connections.id, {
+        await User.findByIdAndUpdate(agentId, {
           $addToSet: { connection: customerId },
         });
-        const u = await User.findById(customerId);
-        io.to(agent.get(min_connections.id)).emit("add-chat", u);
+        io.to(socket.id).emit("add-chat", customer);
       }
     } catch (err) {
-      console.log(err);
+      //console.log(err);
     }
   });
 });

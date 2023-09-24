@@ -1,21 +1,20 @@
-import socket from "../socket";
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
 import CustomerChatPage from "./CustomerChatPage";
 import AgentChatPage from "./AgentChatPage";
 const host = import.meta.env.VITE_BACKEND_URI;
+import { io } from "socket.io-client";
+const socket = io(import.meta.env.VITE_BACKEND_URI, { autoConnect: false });
 export default function Chat() {
   const user = useSelector((state) => state.user);
   useEffect(() => {
-    if (user.loggedIn) {
-      console.log(user.loggedIn);
-      //make connection
-      socket.connect();
-      //emit user-id event and send userid
-      socket.emit("user-id", user.id);
-      console.log("id call");
-    }
+    console.log(user.loggedIn);
+    //make connection
+    socket.connect();
+    //emit user-id event and send userid
+    socket.emit("user-id", user.id);
+    console.log("id call");
     return () => {
       socket.disconnect();
     };
@@ -28,8 +27,8 @@ export default function Chat() {
         backgroundSize: "contain",
       }}
     >
-      {user.type === "AGENT" && <AgentChatPage />}
-      {user.type === "CUSTOMER" && <CustomerChatPage />}
+      {user.type === "AGENT" && <AgentChatPage socket={socket} />}
+      {user.type === "CUSTOMER" && <CustomerChatPage socket={socket} />}
     </div>
   );
 }

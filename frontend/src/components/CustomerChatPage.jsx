@@ -1,11 +1,10 @@
-import socket from "../socket";
 import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { setMessages, addMessage } from "../redux/message";
 const host = import.meta.env.VITE_BACKEND_URI;
-export default function CustomerChatPage() {
+export default function CustomerChatPage({ socket }) {
   const dispatch = useDispatch();
   const chats = useSelector((state) => state.message.messages);
   const user = useSelector((state) => state.user);
@@ -78,11 +77,12 @@ export default function CustomerChatPage() {
           );
         })}
       </div>
-      <div className="input absolute w-full bottom-4 pl-3 pr-9 h-[8%] grid grid-cols-5">
+      <form className="input absolute w-full bottom-4 pl-3 pr-9 h-[8%] grid grid-cols-5">
         <input
           type="text"
           className="col-span-4 border-2 pl-2 pr-2 rounded-lg"
           placeholder="Enter message..."
+          value={message}
           onChange={(e) => {
             setMessage(e.target.value);
           }}
@@ -94,7 +94,7 @@ export default function CustomerChatPage() {
         >
           Send
         </button>
-      </div>
+      </form>
     </div>
   );
 }
