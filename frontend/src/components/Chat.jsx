@@ -9,15 +9,17 @@ export default function Chat() {
   const user = useSelector((state) => state.user);
   useEffect(() => {
     if (user.loggedIn) {
+      console.log(user.loggedIn);
       //make connection
       socket.connect();
       //emit user-id event and send userid
       socket.emit("user-id", user.id);
+      console.log("id call");
     }
     return () => {
       socket.disconnect();
     };
-  }, [user.loggedIn]);
+  }, []);
   return (
     <div
       className="chat-page w-screen h-screen"

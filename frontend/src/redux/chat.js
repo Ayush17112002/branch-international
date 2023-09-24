@@ -13,7 +13,11 @@ const chatSlice = createSlice({
       });
     },
     addChat(state, action) {
-      state.chats.push(action.payload);
+      let b = false;
+      state.chats.forEach((c) => {
+        if (String(c._id) === String(action.payload._id)) b = true;
+      });
+      if (!b) state.chats.push(action.payload);
     },
     removeCustomer(state, action) {
       const temp = [];

@@ -44,6 +44,7 @@ export default function AgentChatPage() {
     const getMessages = async () => {
       try {
         if (!receiver) {
+          dispatch(setMessages([]));
           return;
         }
         const res = await axios({
@@ -81,23 +82,31 @@ export default function AgentChatPage() {
   useEffect(() => {
     function onReceiveMessage(message) {
       console.log("rec listen", messages);
-      if (receiver === message.from._id) dispatch(addMessage(message));
+      if (receiver === String(message.from._id)) dispatch(addMessage(message));
     }
     function onAddChat(message) {
       console.log(message, "add");
       dispatch(addChat(message));
     }
     function onClose(customerId) {
-      console.log(customerId);
+      if (String(customerId) === receiver) {
+        //console.log(customerId, receiver);
+        setReceiver(null);
+      }
       dispatch(removeCustomer(customerId));
+    }
+    function onRemoveCustomer(id) {
+      dispatch(removeCustomer(id));
     }
     socket.on("receive-message", onReceiveMessage);
     socket.on("add-chat", onAddChat);
     socket.on("on-close", onClose);
+    socket.on("remove-customer", onRemoveCustomer);
     return () => {
       socket.off("receive-message", onReceiveMessage);
       socket.off("add-chat", onAddChat);
       socket.off("on-close", onClose);
+      socket.off("remove-customer", onRemoveCustomer);
     };
   }, []);
 

@@ -5,7 +5,7 @@ import axios from "axios";
 import socket from "../socket";
 import { useSelector, useDispatch } from "react-redux";
 const host = import.meta.env.VITE_BACKEND_URI;
-const Login = () => {
+const Login = ({ type }) => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const [userName, setUserName] = useState("");
@@ -23,6 +23,7 @@ const Login = () => {
         url: `${host}/login`,
         data: {
           userName,
+          type,
         },
       });
       const data = res.data.data;

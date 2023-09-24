@@ -41,7 +41,7 @@ export default function CustomerChatPage() {
         console.log(res);
         dispatch(setMessages(res.data.data));
       } catch (err) {
-        toast.error("Chats could not be loaded");
+        toast.error("Messages could not be loaded");
       }
     };
     getChats();

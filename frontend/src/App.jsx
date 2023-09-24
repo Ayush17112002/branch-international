@@ -6,12 +6,12 @@ import "react-toastify/dist/ReactToastify.css";
 import { useSelector, useDispatch } from "react-redux";
 import Chat from "./components/Chat";
 
-const App = () => {
+const App = ({ type }) => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   return (
     <div className="app">
-      {!user.loggedIn ? <Login /> : <Chat />}
+      {!user.loggedIn ? <Login type={type} /> : <Chat />}
       <ToastContainer />
     </div>
   );
