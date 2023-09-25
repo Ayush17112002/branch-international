@@ -9,15 +9,15 @@ require("dotenv").config();
 require("./db/config");
 const User = require("./models/user.model");
 const Chat = require("./models/chat.model");
-app.use("/config", async (req, res) => {
-  try {
-    await User.updateMany({ $set: { connection: [] } });
-    return res.send("done");
-  } catch (err) {
-    //console.log(err);
-    return res.send("Fdf");
-  }
-});
+// app.use("/config", async (req, res) => {
+//   try {
+//     await User.updateMany({ $set: { connection: [] } });
+//     return res.send("done");
+//   } catch (err) {
+//     //console.log(err);
+//     return res.send("Fdf");
+//   }
+// });
 app.post("/login", require("./controllers/login.controller").login);
 app.get("/messages/:id", require("./controllers/chat.controller").getMessages);
 app.get("/chats/:id", require("./controllers/chat.controller").getChats);
