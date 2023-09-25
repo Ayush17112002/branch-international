@@ -5,7 +5,10 @@ import CustomerChatPage from "./CustomerChatPage";
 import AgentChatPage from "./AgentChatPage";
 const host = import.meta.env.VITE_BACKEND_URI;
 import { io } from "socket.io-client";
-const socket = io(import.meta.env.VITE_BACKEND_URI, { autoConnect: false });
+const socket = io(import.meta.env.VITE_BACKEND_URI, {
+  autoConnect: false,
+  transports: ["websocket", "polling", "flashsocket"],
+});
 export default function Chat() {
   const user = useSelector((state) => state.user);
   useEffect(() => {
