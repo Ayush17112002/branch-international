@@ -6,12 +6,14 @@ import Search from "./Search";
 import "./Search.css";
 import { setMessages, addMessage, clearMessages } from "../redux/message";
 import { setChats, addChat, removeCustomer } from "../redux/chat";
+import LoadingSpinner from "./LoadingSpinner";
 const host = import.meta.env.VITE_BACKEND_URI;
 export default function AgentChatPage({ socket }) {
   const dispatch = useDispatch();
   const messages = useSelector((state) => state.message.messages);
   const [filteredChats, setFilteredChats] = useState([]);
-  console.log(filteredChats);
+  const [chatsLoading, setChatsLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const chats = useSelector((state) => state.chat.chats);
   const user = useSelector((state) => state.user);
   const [receiver, setReceiver] = useState(null);
@@ -50,6 +52,7 @@ export default function AgentChatPage({ socket }) {
           dispatch(clearMessages());
           return;
         }
+        setMessagesLoading(true);
         const res = await axios({
           headers: { "Content-Type": "application/json" },
           method: "GET",
@@ -60,6 +63,8 @@ export default function AgentChatPage({ socket }) {
       } catch (err) {
         console.log(err);
         toast.error("Messages could not be loaded");
+      } finally {
+        setMessagesLoading(false);
       }
     };
     getMessages();
@@ -67,6 +72,7 @@ export default function AgentChatPage({ socket }) {
 
   useEffect(() => {
     const getChats = async () => {
+      setChatsLoading(true);
       try {
         const res = await axios({
           headers: { "Content-Type": "application/json" },
@@ -78,6 +84,8 @@ export default function AgentChatPage({ socket }) {
       } catch (err) {
         console.log(err);
         toast.error("Chats could not be loaded");
+      } finally {
+        setChatsLoading(false);
       }
     };
     getChats();
@@ -127,8 +135,13 @@ export default function AgentChatPage({ socket }) {
     <div className="agent-chat-page absolute w-2/3 h-4/5 top-[10%] left-[12.5%] shadow-lg rounded-lg border-2 p-[1%] flex flex-col bg-slate-50">
       <Search setFilteredChats={setFilteredChats} />
       <div className="relative w-full h-full grid grid-cols-3">
-        <div className="left-side relative flex flex-col justify-start border-2 overflow-auto rounded-lg">
-          {filteredChats.length > 0 &&
+        <div
+          className={`left-side relative flex flex-col border-2 overflow-auto rounded-lg ${
+            chatsLoading ? `justify-center` : `justify-start`
+          }`}
+        >
+          {!chatsLoading &&
+            filteredChats.length > 0 &&
             filteredChats.map((chat, index) => {
               return (
                 <div key={index} className="flex flex-row justify-start">
@@ -159,10 +172,11 @@ export default function AgentChatPage({ socket }) {
                 </div>
               );
             })}
+          {chatsLoading && <LoadingSpinner />}
         </div>
         {receiver && (
           <div className="right-side ml-2 relative col-span-2">
-            {filteredChats.map((chat, index) => {
+            {chats.map((chat, index) => {
               if (chat._id === receiver) {
                 return (
                   <div
@@ -175,25 +189,28 @@ export default function AgentChatPage({ socket }) {
               }
             })}
             <div className="chats absolute overflow-auto h-[84%] w-full pl-3 pr-3">
-              {messages.map((chat, index) => {
-                const d = new Date(chat.createdAt);
-                return (
-                  <div
-                    key={index}
-                    className={`relative flex flex-col mt-1 mb-1 w-full border-2 rounded-lg ${
-                      receiver === chat.from._id ? "items-start" : "items-end"
-                    }`}
-                  >
-                    <div className="text-xs font-bold">
-                      {chat.from.userName}
+              {!messagesLoading &&
+                messages.length > 0 &&
+                messages.map((chat, index) => {
+                  const d = new Date(chat.createdAt);
+                  return (
+                    <div
+                      key={index}
+                      className={`relative flex flex-col mt-1 mb-1 w-full border-2 rounded-lg ${
+                        receiver === chat.from._id ? "items-start" : "items-end"
+                      }`}
+                    >
+                      <div className="text-xs font-bold">
+                        {chat.from.userName}
+                      </div>
+                      <div>{chat.message.text}</div>
+                      <div className="text-xs font-semibold">
+                        {d.toTimeString().substr(0, 8)}
+                      </div>
                     </div>
-                    <div>{chat.message.text}</div>
-                    <div className="text-xs font-semibold">
-                      {d.toTimeString().substr(0, 8)}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              {messagesLoading && <LoadingSpinner />}
             </div>
             <form className="input absolute w-full bottom-1 h-[8%] grid grid-cols-5">
               <input

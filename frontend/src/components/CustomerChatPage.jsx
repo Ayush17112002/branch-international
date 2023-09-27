@@ -2,12 +2,14 @@ import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
+import LoadingSpinner from "./LoadingSpinner";
 import { setMessages, addMessage } from "../redux/message";
 const host = import.meta.env.VITE_BACKEND_URI;
 export default function CustomerChatPage({ socket }) {
   const dispatch = useDispatch();
   const chats = useSelector((state) => state.message.messages);
   const user = useSelector((state) => state.user);
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const [message, setMessage] = useState("");
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -32,6 +34,7 @@ export default function CustomerChatPage({ socket }) {
   useEffect(() => {
     const getChats = async () => {
       try {
+        setMessagesLoading(true);
         const res = await axios({
           headers: { "Content-Type": "application/json" },
           method: "GET",
@@ -41,6 +44,8 @@ export default function CustomerChatPage({ socket }) {
         dispatch(setMessages(res.data.data));
       } catch (err) {
         toast.error("Messages could not be loaded");
+      } finally {
+        setMessagesLoading(false);
       }
     };
     getChats();
@@ -58,25 +63,28 @@ export default function CustomerChatPage({ socket }) {
   }, []);
   return (
     <div className="customer-chat-page absolute w-2/3 h-3/4 top-[12.5%] left-[12.5%] shadow-lg rounded-lg p-4 bg-slate-50">
-      <div className="chats overflow-auto relative h-[90%] pl-3 pr-3 w-full">
-        {chats.map((chat, index) => {
-          const d = new Date(chat.createdAt);
-          return (
-            <div
-              key={index}
-              className={`relative flex flex-col mt-1 mb-1 w-full border-2 rounded-lg ${
-                user.id === chat.from._id ? "items-end" : "items-start"
-              }`}
-            >
-              <div className="text-xs font-bold">{chat.from.userName}</div>
-              <div>{chat.message.text}</div>
-              <div className="text-xs font-semibold">
-                {d.toTimeString().substr(0, 8)}
+      {!messagesLoading && (
+        <div className="chats overflow-auto relative h-[90%] pl-3 pr-3 w-full">
+          {chats.map((chat, index) => {
+            const d = new Date(chat.createdAt);
+            return (
+              <div
+                key={index}
+                className={`relative flex flex-col mt-1 mb-1 w-full border-2 rounded-lg ${
+                  user.id === chat.from._id ? "items-end" : "items-start"
+                }`}
+              >
+                <div className="text-xs font-bold">{chat.from.userName}</div>
+                <div>{chat.message.text}</div>
+                <div className="text-xs font-semibold">
+                  {d.toTimeString().substr(0, 8)}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+      {messagesLoading && <LoadingSpinner />}
       <form className="input absolute w-full bottom-4 pl-3 pr-9 h-[8%] grid grid-cols-5">
         <input
           type="text"
