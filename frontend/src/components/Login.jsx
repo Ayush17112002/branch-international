@@ -46,15 +46,13 @@ const Login = ({ type }) => {
         className="login-form flex flex-col absolute justify-start items-center top-1/4 left-8 w-1/3 h-1/2 rounded-md shadow-lg"
         id="login-form"
       >
-        <h1 className="logo text-2xl font-bold">
-          BRANCH INTERNATIONAL LOGIN PORTAL
-        </h1>
+        <h1 className="logo text-2xl font-bold">{type} LOGIN PORTAL</h1>
 
         <input
           type="text"
           className="mt-8 relative pl-2 pr-2 ml-4 mr-4 rounded-md h-8 w-[80%]"
           onChange={inputHandler}
-          placeholder="Enter username..."
+          placeholder={type === "CUSTOMER" ? `Enter 7812` : `Enter agent`}
         ></input>
 
         <button
